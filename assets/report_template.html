@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Отчёт по работе в Jira — шаблон</title>
+<!--
+ТЕЗИС: Отчёт показывает движение работы по Jira как единый журнал изменений, а не как доску из разрозненных карточек.
+СВОЙ МИР: Оперативный журнал ATOM — тёмная командная шапка, кобальтовый маршрут статусов, табличная плотность и точные временные метки.
+СЦЕНАРИЙ: Сначала понять итог периода, затем увидеть поток статусов, проверить каждую задачу, worklog и расхождения данных.
+ПЕРВЫЙ ЭКРАН: Период и контекст слева, измеримый итог справа, под ними маршрут задач от очереди до завершения.
+ФОРМА: Рабочий реестр с раскрываемыми строками; структура наследует визуальный язык отчёта jitsi-calls-reports.
+-->
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  color-scheme:light;
+  --bg:#e9edf4;
+  --paper:#ffffff;
+  --paper-alt:#f5f7fb;
+  --ink:#101828;
+  --ink-soft:#475467;
+  --muted:#667085;
+  --line:#d8dee9;
+  --line-strong:#aeb8c8;
+  --hero:#101725;
+  --hero-deep:#090e18;
+  --hero-ink:#f8faff;
+  --hero-soft:#aeb9cb;
+  --accent:#245cff;
+  --accent-strong:#1748d4;
+  --accent-soft:#e7edff;
+  --success:#0a7d57;
+  --success-soft:#e3f5ee;
+  --warning:#a94d00;
+  --warning-soft:#fff0d7;
+  --danger:#b42318;
+  --danger-soft:#feeceb;
+  --paused:#8c5c00;
+  --paused-soft:#fff4ce;
+  --focus:#ffb000;
+  --shadow:0 20px 48px rgba(17,24,39,.11);
+  --radius:14px;
+  --s1:4px;
+  --s2:8px;
+  --s3:12px;
+  --s4:16px;
+  --s5:24px;
+  --s6:32px;
+  --s7:48px;
+  --s8:64px;
+  --s9:88px;
+  font-family:"Segoe UI Variable","Segoe UI",Arial,sans-serif;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0a0f18;
+  --paper:#141b27;
+  --paper-alt:#101722;
+  --ink:#f4f7fb;
+  --ink-soft:#c1cad8;
+  --muted:#909caf;
+  --line:#2b3648;
+  --line-strong:#46536a;
+  --hero:#070b12;
+  --hero-deep:#03060a;
+  --hero-ink:#ffffff;
+  --hero-soft:#aeb9cb;
+  --accent:#7697ff;
+  --accent-strong:#9bb2ff;
+  --accent-soft:#202e54;
+  --success:#5bd6ad;
+  --success-soft:#173b32;
+  --warning:#ffb45d;
+  --warning-soft:#3c2a16;
+  --danger:#ff8b84;
+  --danger-soft:#46231f;
+  --paused:#f7cc62;
+  --paused-soft:#3b3219;
+  --focus:#ffd166;
+  --shadow:0 22px 52px rgba(0,0,0,.3);
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0a0f18;
+    --paper:#141b27;
+    --paper-alt:#101722;
+    --ink:#f4f7fb;
+    --ink-soft:#c1cad8;
+    --muted:#909caf;
+    --line:#2b3648;
+    --line-strong:#46536a;
+    --hero:#070b12;
+    --hero-deep:#03060a;
+    --hero-ink:#ffffff;
+    --hero-soft:#aeb9cb;
+    --accent:#7697ff;
+    --accent-strong:#9bb2ff;
+    --accent-soft:#202e54;
+    --success:#5bd6ad;
+    --success-soft:#173b32;
+    --warning:#ffb45d;
+    --warning-soft:#3c2a16;
+    --danger:#ff8b84;
+    --danger-soft:#46231f;
+    --paused:#f7cc62;
+    --paused-soft:#3b3219;
+    --focus:#ffd166;
+    --shadow:0 22px 52px rgba(0,0,0,.3);
+  }
+}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5}
+button,input,summary{font:inherit}
+a{color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.shell{width:min(100%,1480px);margin:0 auto;background:var(--paper);box-shadow:var(--shadow)}
+.hero{background:var(--hero);color:var(--hero-ink);padding:var(--s5) clamp(20px,4vw,64px) var(--s7)}
+.hero-nav{display:flex;align-items:center;justify-content:space-between;gap:var(--s5);padding-bottom:var(--s8)}
+.brand{display:flex;align-items:center;gap:var(--s3);font-weight:740;letter-spacing:-.01em}
+.brand-mark{position:relative;width:18px;height:18px}
+.brand-mark::before,.brand-mark::after{content:"";position:absolute;inset:0;background:var(--accent);border-radius:3px;transform:rotate(45deg)}
+.brand-mark::after{inset:5px;background:var(--hero)}
+.hero-actions{display:flex;align-items:center;gap:var(--s2)}
+.ghost-button{min-height:40px;padding:0 var(--s4);border:1px solid rgba(255,255,255,.24);border-radius:999px;background:transparent;color:var(--hero-ink);cursor:pointer}
+.ghost-button:hover{background:rgba(255,255,255,.08)}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(420px,.8fr);gap:clamp(40px,7vw,100px);align-items:end}
+.hero-kicker{display:flex;align-items:center;gap:var(--s3);margin:0 0 var(--s4);color:var(--hero-soft);font-size:13px}
+.hero-kicker::before{content:"";width:44px;height:1px;background:var(--accent)}
+.hero-title{margin:0;max-width:12ch;font-size:clamp(48px,7vw,88px);line-height:.95;letter-spacing:-.04em;font-weight:770;text-wrap:balance}
+.hero-meta{display:flex;flex-wrap:wrap;gap:var(--s3) var(--s5);margin:var(--s5) 0 0;color:var(--hero-soft);font-size:13px}
+.hero-meta b{color:var(--hero-ink);font-weight:650}
+.demo-flag{display:inline-flex;align-items:center;gap:var(--s2);margin-top:var(--s5);padding:7px 11px;border:1px solid rgba(255,255,255,.2);border-radius:999px;color:var(--hero-soft);font-size:12px}
+.demo-flag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--warning)}
+.scoreboard{border-top:1px solid rgba(255,255,255,.18)}
+.score-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--s4);align-items:baseline;padding:var(--s3) 0;border-bottom:1px solid rgba(255,255,255,.18)}
+.score-line span{color:var(--hero-soft);font-size:12px}
+.score-line strong{font-size:clamp(22px,2.6vw,36px);line-height:1;font-weight:700;letter-spacing:-.03em}
+.score-line small{grid-column:1/-1;margin-top:-6px;color:var(--hero-soft);font-size:11px}
+.flow{margin-top:var(--s7);padding-top:var(--s5);border-top:1px solid rgba(255,255,255,.18)}
+.flow-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s4);margin-bottom:var(--s4);color:var(--hero-soft);font-size:12px}
+.flow-track{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:rgba(255,255,255,.14)}
+.flow-step{position:relative;min-height:84px;padding:var(--s3) var(--s4);background:var(--hero-deep)}
+.flow-step span{display:block;color:var(--hero-soft);font-size:11px}
+.flow-step strong{display:block;margin-top:var(--s2);font-size:27px;line-height:1}
+.flow-step i{position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--step-color,var(--accent));transform-origin:left}
+@media(prefers-reduced-motion:no-preference){
+  .flow-step i{animation:draw-flow .75s cubic-bezier(.16,1,.3,1) both}
+  .flow-step:nth-child(2) i{animation-delay:.06s}
+  .flow-step:nth-child(3) i{animation-delay:.12s}
+  .flow-step:nth-child(4) i{animation-delay:.18s}
+  .flow-step:nth-child(5) i{animation-delay:.24s}
+}
+@keyframes draw-flow{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}
+.report-nav{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:var(--s2);padding:10px clamp(20px,4vw,64px);overflow-x:auto;background:color-mix(in srgb,var(--paper) 94%,transparent);border-bottom:1px solid var(--line);backdrop-filter:blur(14px)}
+.report-nav a{flex:none;padding:8px 12px;border-radius:999px;color:var(--ink-soft);text-decoration:none;font-size:13px}
+.report-nav a:hover{background:var(--accent-soft);color:var(--accent-strong)}
+.report-nav .nav-alert{margin-left:auto;color:var(--warning)}
+.main{padding:0 clamp(20px,4vw,64px) var(--s9)}
+.section{scroll-margin-top:72px;padding-top:clamp(52px,7vw,92px)}
+.section-heading{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.45fr);gap:var(--s6);align-items:end;margin-bottom:var(--s6)}
+.section-heading h2{margin:0;max-width:16ch;font-size:clamp(32px,4vw,54px);line-height:1;letter-spacing:-.035em;text-wrap:balance}
+.section-heading p{margin:0;max-width:58ch;color:var(--ink-soft)}
+.section-heading .section-actions{display:flex;align-items:center;justify-content:flex-end;gap:var(--s2)}
+.secondary-button{min-height:42px;padding:0 var(--s4);border:1px solid var(--line-strong);border-radius:999px;background:var(--paper);color:var(--ink);cursor:pointer}
+.secondary-button:hover{border-color:var(--accent);color:var(--accent-strong)}
+.overview-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:clamp(32px,6vw,88px);align-items:start}
+.status-ledger{border-top:1px solid var(--line-strong)}
+.status-row{display:grid;grid-template-columns:minmax(150px,.55fr) minmax(180px,1fr) 72px;gap:var(--s4);align-items:center;min-height:68px;border-bottom:1px solid var(--line)}
+.status-name{display:flex;align-items:center;gap:var(--s3);font-weight:650}
+.status-dot{width:10px;height:10px;border-radius:50%;background:var(--dot,var(--muted));box-shadow:0 0 0 4px color-mix(in srgb,var(--dot,var(--muted)) 14%,transparent)}
+.status-bar{height:8px;background:var(--line);border-radius:3px;overflow:hidden}
+.status-bar i{display:block;width:var(--value);height:100%;background:var(--dot,var(--accent))}
+.status-count{text-align:right;font-variant-numeric:tabular-nums}
+.period-balance{position:sticky;top:76px;border-top:1px solid var(--line-strong)}
+.balance-row{padding:var(--s4) 0;border-bottom:1px solid var(--line)}
+.balance-row span{display:block;color:var(--muted);font-size:11px}
+.balance-row strong{display:block;margin-top:var(--s1);font-size:21px;line-height:1.2;letter-spacing:-.02em}
+.balance-row small{display:block;margin-top:var(--s2);color:var(--ink-soft)}
+.balance-emphasis{padding:var(--s5);background:var(--accent-soft);color:var(--accent-strong)}
+.balance-emphasis strong{font-size:42px}
+.controls{display:grid;grid-template-columns:minmax(240px,1fr) auto;gap:var(--s4);align-items:center;margin-bottom:var(--s4)}
+.search-field{position:relative}
+.search-field input{width:100%;min-height:44px;padding:0 46px 0 var(--s4);border:1px solid var(--line-strong);border-radius:10px;background:var(--paper);color:var(--ink)}
+.search-field input::placeholder{color:var(--muted)}
+.search-field::after{content:"⌕";position:absolute;right:var(--s4);top:50%;transform:translateY(-54%);color:var(--muted);font-size:24px;pointer-events:none}
+.filters{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--s2)}
+.filter-button{min-height:38px;padding:0 var(--s3);border:1px solid var(--line);border-radius:999px;background:var(--paper);color:var(--ink-soft);cursor:pointer}
+.filter-button:hover{border-color:var(--accent)}
+.filter-button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-strong);font-weight:650}
+.task-registry{border-top:1px solid var(--line-strong)}
+.registry-head,.task-summary{display:grid;grid-template-columns:80px 100px minmax(300px,1fr) 156px 92px 122px;gap:var(--s3);align-items:center}
+.registry-head{min-height:42px;color:var(--muted);font-size:10px}
+.task-item{border-bottom:1px solid var(--line)}
+.task-item[hidden]{display:none}
+.task-summary{position:relative;min-height:78px;padding:var(--s3) 34px var(--s3) 0;cursor:pointer;list-style:none}
+.task-summary::-webkit-details-marker{display:none}
+.task-summary::after{content:"+";position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:24px;font-weight:300;transition:transform .2s ease}
+.task-item[open] .task-summary::after{transform:translateY(-50%) rotate(45deg)}
+.task-item[open] .task-summary{background:var(--paper-alt)}
+.task-item[data-level="1"] .task-summary{padding-left:34px}
+.task-item[data-level="1"] .task-summary::before{content:"";position:absolute;left:10px;top:0;width:14px;height:50%;border-left:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong)}
+.task-key{font-weight:730;color:var(--accent-strong);text-decoration:none}
+.task-key:hover{text-decoration:underline}
+.task-type{color:var(--ink-soft);font-size:12px}
+.task-copy{min-width:0}
+.task-copy strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.task-copy small{display:block;margin-top:var(--s1);color:var(--muted)}
+.status-chip{display:inline-flex;align-items:center;gap:var(--s2);width:max-content;max-width:100%;padding:5px 9px;border-radius:999px;background:var(--chip-bg,var(--accent-soft));color:var(--chip,var(--accent-strong));font-size:11px;font-weight:680;white-space:nowrap}
+.status-chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.priority{font-size:12px;color:var(--ink-soft)}
+.priority b{color:var(--danger)}
+.time-cell{font-variant-numeric:tabular-nums}
+.time-cell strong{display:block;font-size:13px}
+.time-cell small{display:block;color:var(--muted);font-size:10px}
+.task-body{display:grid;grid-template-columns:minmax(210px,.42fr) minmax(0,1fr);gap:clamp(28px,5vw,72px);padding:var(--s5) 34px var(--s6);background:var(--paper-alt)}
+.task-facts{margin:0}
+.task-facts div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:var(--s3);padding:9px 0;border-bottom:1px solid var(--line)}
+.task-facts dt{color:var(--muted);font-size:11px}
+.task-facts dd{margin:0;color:var(--ink-soft);font-size:12px}
+.task-story h4{margin:0 0 var(--s3);font-size:13px}
+.task-story p{max-width:72ch;margin:0;color:var(--ink-soft)}
+.mini-log{margin-top:var(--s5);border-top:1px solid var(--line)}
+.mini-log div{display:grid;grid-template-columns:132px minmax(0,1fr) auto;gap:var(--s3);padding:10px 0;border-bottom:1px solid var(--line);font-size:12px}
+.mini-log time{color:var(--muted);font-variant-numeric:tabular-nums}
+.mini-log small{color:var(--muted)}
+/* Длинные комментарии и worklog не растягивают карточку: свой скролл на 11 строк. */
+.mini-log span{max-height:11.5em;overflow-y:auto;overscroll-behavior:contain}
+.mini-log span::-webkit-scrollbar{width:8px}
+.mini-log span::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:4px}
+.registry-empty{display:none;padding:var(--s6) 0;color:var(--muted)}
+.registry-empty.is-visible{display:block}
+.registry-note{display:flex;justify-content:space-between;gap:var(--s4);padding-top:var(--s3);color:var(--muted);font-size:12px}
+.graph-wrap{overflow-x:auto;border-top:1px solid var(--line-strong);padding-top:var(--s5)}
+.graph{display:block;width:100%;min-width:720px;height:auto;font-variant-numeric:tabular-nums}
+.graph .tick{stroke:var(--line);opacity:.7}
+.graph .tick-minor{stroke:var(--line);opacity:.35}
+.graph .tick-label{fill:var(--muted);font-size:10px}
+.graph .key{fill:var(--accent-strong);font-size:11px;font-weight:650}
+.graph .end{font-size:10px}
+.graph a{text-decoration:none}
+.graph a:hover .key{text-decoration:underline}
+.graph circle{cursor:default}
+.graph-legend{display:flex;flex-wrap:wrap;gap:var(--s4);padding-top:var(--s4);color:var(--muted);font-size:11px}
+.graph-legend span{display:inline-flex;align-items:center;gap:6px}
+.graph-legend i{width:9px;height:9px;border-radius:50%;background:var(--dot,var(--line))}
+.audit-box{padding:var(--s5);background:var(--warning-soft);color:var(--warning);border-radius:var(--radius)}
+.audit-box h3{margin:0;font-size:20px}
+.audit-box ol{margin:var(--s4) 0 0;padding-left:22px}
+.audit-box li{margin:var(--s3) 0}
+.source-table{margin-top:var(--s6);border-top:1px solid var(--line-strong)}
+.source-row{display:grid;grid-template-columns:minmax(180px,.55fr) minmax(0,1fr) auto;gap:var(--s4);padding:var(--s4) 0;border-bottom:1px solid var(--line);font-size:12px}
+.source-row span{min-width:0;color:var(--ink-soft);overflow-wrap:anywhere}
+.source-row b{color:var(--success)}
+.footer{display:flex;justify-content:space-between;gap:var(--s5);padding:var(--s6) clamp(20px,4vw,64px);border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+.footer span,.task-facts dd,.mini-log span{overflow-wrap:anywhere}
+@media(max-width:1120px){
+  .registry-head{display:none}
+  .task-summary{grid-template-columns:90px minmax(0,1fr) 160px 110px}
+  .task-summary .task-type{display:none}
+  .task-summary .priority{display:none}
+  .task-summary .task-copy{grid-column:2}
+  .task-summary .status-chip{grid-column:3}
+  .task-summary .time-cell{grid-column:4}
+}
+@media(max-width:920px){
+  .hero-grid,.overview-grid,.section-heading{grid-template-columns:1fr}
+  .hero-grid{gap:var(--s7)}
+  .period-balance{position:static}
+  .section-heading .section-actions{justify-content:flex-start}
+  .controls{grid-template-columns:1fr}
+  .filters{justify-content:flex-start}
+  .flow-track{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:720px){
+  .hero{padding-bottom:var(--s6)}
+  .hero-nav{align-items:flex-start;padding-bottom:var(--s7)}
+  .hero-title{font-size:clamp(42px,14vw,68px)}
+  .hero-actions{flex-direction:column;align-items:stretch}
+  .hero-actions .ghost-button{min-height:36px}
+  .flow-track{grid-template-columns:1fr 1fr}
+  .report-nav .nav-alert{margin-left:0}
+  .section{padding-top:var(--s7)}
+  .task-summary{grid-template-columns:82px minmax(0,1fr);gap:var(--s2);padding-top:var(--s4);padding-bottom:var(--s4)}
+  .task-summary .task-key{grid-column:1}
+  .task-summary .task-copy{grid-column:2}
+  .task-summary .status-chip{grid-column:2}
+  .task-summary .time-cell{grid-column:2}
+  .task-summary .time-cell strong,.task-summary .time-cell small{display:inline}
+  .task-summary .time-cell small::before{content:" · "}
+  .task-body{grid-template-columns:1fr;padding-left:var(--s4);padding-right:var(--s4)}
+  .mini-log div{grid-template-columns:1fr}
+  .source-row{grid-template-columns:1fr}
+  .footer{flex-direction:column}
+}
+@media(max-width:460px){
+  .brand{max-width:180px}
+  .hero-actions .ghost-button:first-child{display:none}
+  .hero-meta{display:grid}
+  .flow-track{grid-template-columns:1fr}
+  .status-row{grid-template-columns:minmax(130px,.8fr) minmax(100px,1fr) 40px}
+  .registry-note{flex-direction:column}
+}
+@media print{
+  :root{--bg:#fff;--paper:#fff;--paper-alt:#f7f7f7;--ink:#000;--ink-soft:#222;--muted:#555;--line:#ccc;--line-strong:#888;--accent:#1748c7;--accent-strong:#1748c7;--accent-soft:#eef2ff;--success:#176b4f;--success-soft:#edf8f3;--warning:#7f3d00;--warning-soft:#fff5e7;--danger:#9f1f18;--danger-soft:#fff0ef;--paused:#765000;--paused-soft:#fff7d8;--hero:#fff;--hero-deep:#f5f5f5;--hero-ink:#000;--hero-soft:#444;--shadow:none}
+  body{font-size:11px}
+  .shell{width:100%;box-shadow:none}
+  .hero{padding:18px 24px;border-bottom:2px solid #000}
+  .hero-nav,.report-nav,.section-actions,.controls{display:none!important}
+  .hero-grid{grid-template-columns:1fr 1fr;gap:32px}
+  .hero-title{font-size:38px}
+  .demo-flag{border-color:#888;color:#333}
+  .flow{margin-top:24px}
+  .flow-step{min-height:58px;background:#f5f5f5}
+  .main{padding:0 24px 24px}
+  .section{padding-top:28px}
+  .section-heading{grid-template-columns:1fr 1fr;margin-bottom:16px}
+  .section-heading h2{font-size:26px}
+  .overview-grid{grid-template-columns:1fr 260px;gap:28px}
+  .period-balance{position:static}
+  .task-item,.graph-wrap{break-inside:avoid}
+  .mini-log span{max-height:none;overflow:visible}
+  .task-item .task-body{display:grid!important}
+  .footer{padding:20px 24px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="hero">
+    <div class="hero-nav">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span> ATOM / полный отчёт Jira</div>
+      <div class="hero-actions">
+        <button class="ghost-button" id="print-report" type="button">Печать</button>
+        <button class="ghost-button" id="theme-toggle" type="button" aria-label="Переключить тему">Тема: авто</button>
+      </div>
+    </div>
+
+    <div class="hero-grid">
+      <div>
+        <p class="hero-kicker">Работа в Jira · исполнитель Уланов Вячеслав</p>
+        <h1 class="hero-title">21–25 июля 2026</h1>
+        <div class="hero-meta">
+          <span>Проект <b>ATOM</b></span>
+          <span>Часовой пояс <b>Europe/Moscow</b></span>
+          <span>Срез <b>27.07.2026 · 11:30</b></span>
+        </div>
+        <span class="demo-flag">Демонстрационные данные · структура шаблона</span>
+      </div>
+      <div class="scoreboard" aria-label="Итоги периода">
+        <div class="score-line"><span>Задач в срезе</span><strong>12</strong><small>8 назначены на пользователя, 4 — связанные родители</small></div>
+        <div class="score-line"><span>Завершено за период</span><strong>5</strong><small>42% от задач, затронутых в выбранном окне</small></div>
+        <div class="score-line"><span>Списано времени</span><strong>26 ч 18 мин</strong><small>Из worklog; технические минуты отмечены отдельно</small></div>
+        <div class="score-line"><span>Остаток оценки</span><strong>14 ч 30 мин</strong><small>По текущему timeestimate на незавершённых задачах</small></div>
+      </div>
+    </div>
+
+    <div class="flow" aria-label="Распределение задач по этапам">
+      <div class="flow-head"><span>Поток работы на момент среза</span><span>12 задач · без двойного счёта</span></div>
+      <div class="flow-track">
+        <div class="flow-step" style="--step-color:#6b7280"><span>Очередь</span><strong>2</strong><i></i></div>
+        <div class="flow-step" style="--step-color:#2f78ff"><span>В работе</span><strong>3</strong><i></i></div>
+        <div class="flow-step" style="--step-color:#f0a21a"><span>Приостановлено</span><strong>1</strong><i></i></div>
+        <div class="flow-step" style="--step-color:#8b6cff"><span>Проверка</span><strong>1</strong><i></i></div>
+        <div class="flow-step" style="--step-color:#18a875"><span>Завершено</span><strong>5</strong><i></i></div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="report-nav" aria-label="Разделы отчёта">
+    <a href="#overview">Сводка</a>
+    <a href="#graph">Ход работы</a>
+    <a href="#tasks">Задачи</a>
+    <a class="nav-alert" href="#checks">2 места требуют сверки</a>
+  </nav>
+
+  <main class="main">
+    <section class="section" id="overview">
+      <div class="section-heading">
+        <h2>Состояние работы</h2>
+        <p>Срез не подменяет список задач выводами: здесь только измеримые состояния, движение за период и остаток оценки.</p>
+      </div>
+      <div class="overview-grid">
+        <div class="status-ledger" aria-label="Задачи по статусам">
+          <div class="status-row" style="--dot:#6b7280"><div class="status-name"><span class="status-dot"></span>Бэклог</div><div class="status-bar"><i style="--value:40%"></i></div><div class="status-count">2</div></div>
+          <div class="status-row" style="--dot:#2f78ff"><div class="status-name"><span class="status-dot"></span>В работе</div><div class="status-bar"><i style="--value:60%"></i></div><div class="status-count">3</div></div>
+          <div class="status-row" style="--dot:#f0a21a"><div class="status-name"><span class="status-dot"></span>Приостановлено</div><div class="status-bar"><i style="--value:20%"></i></div><div class="status-count">1</div></div>
+          <div class="status-row" style="--dot:#8b6cff"><div class="status-name"><span class="status-dot"></span>Код-ревью / тест</div><div class="status-bar"><i style="--value:20%"></i></div><div class="status-count">1</div></div>
+          <div class="status-row" style="--dot:#18a875"><div class="status-name"><span class="status-dot"></span>Завершено</div><div class="status-bar"><i style="--value:100%"></i></div><div class="status-count">5</div></div>
+        </div>
+        <aside class="period-balance">
+          <div class="balance-row balance-emphasis"><span>Чистое изменение периода</span><strong>−3 задачи</strong><small>Завершено 5, создано 2</small></div>
+          <div class="balance-row"><span>Задачи с движением</span><strong>9 из 12</strong><small>Статус, worklog, комментарий или обновление полей</small></div>
+          <div class="balance-row"><span>Без активности</span><strong>3 задачи</strong><small>С 21 июля изменений не зафиксировано</small></div>
+          <div class="balance-row"><span>Технический worklog</span><strong>3 мин</strong><small>Три перехода по 1 минуте; один показан в демонстрационной выборке ниже</small></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="graph">
+      <div class="section-heading">
+        <h2>Ход работы</h2>
+        <p>Ветка на задачу: узел — создание или переход статуса, цвет отрезка — состояние до следующего узла.</p>
+      </div>
+      <div class="graph-wrap">
+        <svg class="graph" viewBox="0 0 1100 126" role="img" aria-label="Пример графика веток">
+          <line class="tick" x1="96" y1="22" x2="96" y2="120"/><text class="tick-label" x="96" y="14" text-anchor="middle">24.07 · 09:00</text>
+          <line class="tick" x1="930" y1="22" x2="930" y2="120"/><text class="tick-label" x="930" y="14" text-anchor="middle">25.07 · 18:10</text>
+          <a href="#"><text class="key" x="0" y="50">ATOM-3421</text></a>
+          <line x1="96" y1="46" x2="300" y2="46" stroke="#6b7280" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="300" y1="46" x2="930" y2="46" stroke="#2f78ff" stroke-width="2.5" stroke-dasharray="2 5" stroke-linecap="round" opacity=".55"/>
+          <circle cx="96" cy="46" r="5" fill="#6b7280" stroke="var(--paper)" stroke-width="2"/>
+          <circle cx="300" cy="46" r="5" fill="#2f78ff" stroke="var(--paper)" stroke-width="2"/>
+          <text class="end" x="940" y="50" fill="#2f78ff">В разработке</text>
+          <a href="#"><text class="key" x="0" y="82">ATOM-3376</text></a>
+          <line x1="240" y1="78" x2="700" y2="78" stroke="#2f78ff" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="700" y1="78" x2="930" y2="78" stroke="#18a875" stroke-width="2.5" stroke-dasharray="2 5" stroke-linecap="round" opacity=".55"/>
+          <circle cx="240" cy="78" r="5" fill="#2f78ff" stroke="var(--paper)" stroke-width="2"/>
+          <circle cx="700" cy="78" r="5" fill="#18a875" stroke="var(--paper)" stroke-width="2"/>
+          <text class="end" x="940" y="82" fill="#18a875">Задача выполнена</text>
+        </svg>
+      </div>
+      <div class="graph-legend">
+        <span style="--dot:#6b7280"><i></i>Очередь</span>
+        <span style="--dot:#2f78ff"><i></i>В работе</span>
+        <span style="--dot:#f0a21a"><i></i>Приостановлено</span>
+        <span style="--dot:#8b6cff"><i></i>Проверка</span>
+        <span style="--dot:#18a875"><i></i>Завершено</span>
+        <span>Пунктир — состояние, в котором задача осталась на конец периода</span>
+      </div>
+    </section>
+
+    <section class="section" id="tasks">
+      <div class="section-heading">
+        <div><h2>Полный реестр задач</h2></div>
+        <div class="section-actions">
+          <button class="secondary-button" id="expand-tasks" type="button">Развернуть все</button>
+        </div>
+      </div>
+      <div class="controls">
+        <label class="search-field">
+          <input id="task-search" type="search" aria-label="Поиск по задачам" placeholder="Найти по ключу, описанию или типу" autocomplete="off">
+        </label>
+        <div class="filters" aria-label="Фильтр задач">
+          <button class="filter-button" type="button" data-filter="all" aria-pressed="true">Все</button>
+          <button class="filter-button" type="button" data-filter="progress" aria-pressed="false">В работе</button>
+          <button class="filter-button" type="button" data-filter="paused" aria-pressed="false">Приостановлено</button>
+          <button class="filter-button" type="button" data-filter="review" aria-pressed="false">Проверка</button>
+          <button class="filter-button" type="button" data-filter="done" aria-pressed="false">Завершено</button>
+        </div>
+      </div>
+
+      <div class="task-registry">
+        <div class="registry-head" aria-hidden="true">
+          <span>Ключ</span><span>Тип</span><span>Описание</span><span>Статус</span><span>Приоритет</span><span>Время</span>
+        </div>
+
+        <details class="task-item" data-status="progress" data-level="0" data-search="atom-3421 задача экспорт отчёта по проекту atom">
+          <summary class="task-summary">
+            <a class="task-key" href="https://jira.dev.sgaz.pro/browse/ATOM-3421">ATOM-3421</a>
+            <span class="task-type">Задача</span>
+            <span class="task-copy"><strong>Экспорт полного отчёта по работе в Jira</strong><small>Обновлено 25 июля · родитель для DEV- и QA-маркеров</small></span>
+            <span class="status-chip">В разработке</span>
+            <span class="priority"><b>Высокий</b></span>
+            <span class="time-cell"><strong>9 ч 40 мин</strong><small>из 16 ч</small></span>
+          </summary>
+          <div class="task-body">
+            <dl class="task-facts">
+              <div><dt>Исполнитель</dt><dd>Уланов Вячеслав</dd></div>
+              <div><dt>Создана</dt><dd>21.07.2026 · 09:42</dd></div>
+              <div><dt>Обновлена</dt><dd>25.07.2026 · 10:58</dd></div>
+              <div><dt>Оценка</dt><dd>16 ч · осталось 6 ч 20 мин</dd></div>
+              <div><dt>Версия</dt><dd>DocMaster/backlog(release)</dd></div>
+              <div><dt>Эпик</dt><dd>ATOM-2588 · Автоматизация рабочих отчётов</dd></div>
+            </dl>
+            <div class="task-story">
+              <h4>Что происходило</h4>
+              <p>За период задача создана, оценена и переведена в разработку. Добавлены два worklog и связанный DEV-маркер. Поле результата здесь формируется только из событий Jira.</p>
+              <div class="mini-log">
+                <div><time>25.07 · 10:58</time><span>Списано время: подготовка HTML-шаблона</span><small>3 ч</small></div>
+                <div><time>24.07 · 17:12</time><span>Статус изменён: Бэклог → В разработке</span><small>Уланов В.</small></div>
+                <div><time>24.07 · 17:11</time><span>Добавлена исходная оценка</span><small>16 ч</small></div>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="task-item" data-status="progress" data-level="1" data-search="atom-3422 маркер dev html шаблон отчёта">
+          <summary class="task-summary">
+            <a class="task-key" href="https://jira.dev.sgaz.pro/browse/ATOM-3422">ATOM-3422</a>
+            <span class="task-type">Маркер</span>
+            <span class="task-copy"><strong>[DEV] HTML-шаблон отчёта Jira</strong><small>Дочерняя к ATOM-3421 · назначена на пользователя</small></span>
+            <span class="status-chip">В работе</span>
+            <span class="priority">Средний</span>
+            <span class="time-cell"><strong>6 ч 40 мин</strong><small>из 8 ч</small></span>
+          </summary>
+          <div class="task-body">
+            <dl class="task-facts">
+              <div><dt>Исполнитель</dt><dd>Уланов Вячеслав</dd></div>
+              <div><dt>Родитель</dt><dd>ATOM-3421</dd></div>
+              <div><dt>Оценка</dt><dd>8 ч · осталось 1 ч 20 мин</dd></div>
+              <div><dt>Спринт</dt><dd>ATOM Sprint 383</dd></div>
+            </dl>
+            <div class="task-story">
+              <h4>Что происходило</h4>
+              <p>Маркер взят в работу после проверки WIP-гейта. Зафиксированы исследование примера Jitsi, структура данных и первый проход интерфейса.</p>
+            </div>
+          </div>
+        </details>
+
+        <details class="task-item" data-status="paused" data-level="0" data-search="atom-3398 задача обновить сценарий авторизации jira">
+          <summary class="task-summary">
+            <a class="task-key" href="https://jira.dev.sgaz.pro/browse/ATOM-3398">ATOM-3398</a>
+            <span class="task-type">Задача</span>
+            <span class="task-copy"><strong>Обновить сценарий авторизации Jira через REST</strong><small>Нет активности 4 дня · требуется внешняя проверка SSO</small></span>
+            <span class="status-chip" style="--chip-bg:var(--paused-soft);--chip:var(--paused)">Приостановлено</span>
+            <span class="priority">Средний</span>
+            <span class="time-cell"><strong>4 ч</strong><small>из 8 ч</small></span>
+          </summary>
+          <div class="task-body">
+            <dl class="task-facts">
+              <div><dt>Исполнитель</dt><dd>Уланов Вячеслав</dd></div>
+              <div><dt>Причина</dt><dd>Ожидание доступного тестового контура SSO</dd></div>
+              <div><dt>Обновлена</dt><dd>23.07.2026 · 15:20</dd></div>
+              <div><dt>Осталось</dt><dd>4 ч</dd></div>
+            </dl>
+            <div class="task-story">
+              <h4>Что происходило</h4>
+              <p>После неуспешной проверки форма входа недоступна. Статус изменён на «Приостановлено», повторных записей и автоматических переходов не выполнялось.</p>
+            </div>
+          </div>
+        </details>
+
+        <details class="task-item" data-status="review" data-level="0" data-search="atom-3376 ошибка некорректный worklog переход тестирование">
+          <summary class="task-summary">
+            <a class="task-key" href="https://jira.dev.sgaz.pro/browse/ATOM-3376">ATOM-3376</a>
+            <span class="task-type">Ошибка</span>
+            <span class="task-copy"><strong>Некорректный worklog при переходе в тестирование</strong><small>Назначена на Владимирову Софью · готова к проверке</small></span>
+            <span class="status-chip" style="--chip-bg:#eeeaff;--chip:#6847d8">Задача выполнена</span>
+            <span class="priority"><b>Высокий</b></span>
+            <span class="time-cell"><strong>3 ч 1 мин</strong><small>из 3 ч</small></span>
+          </summary>
+          <div class="task-body">
+            <dl class="task-facts">
+              <div><dt>Исполнитель</dt><dd>Владимирова Софья</dd></div>
+              <div><dt>Разработчик</dt><dd>Уланов Вячеслав</dd></div>
+              <div><dt>Переведена</dt><dd>25.07.2026 · 18:06</dd></div>
+              <div><dt>Worklog</dt><dd>3 ч + 1 техническая минута</dd></div>
+            </dl>
+            <div class="task-story">
+              <h4>Что происходило</h4>
+              <p>Ошибка исправлена и передана обязательному тестировщику. Техническая минута, добавленная workflow Jira, выделена отдельно и входит в общий worklog.</p>
+            </div>
+          </div>
+        </details>
+
+        <details class="task-item" data-status="done" data-level="0" data-search="atom-3340 задача дерево родительских связей">
+          <summary class="task-summary">
+            <a class="task-key" href="https://jira.dev.sgaz.pro/browse/ATOM-3340">ATOM-3340</a>
+            <span class="task-type">Задача</span>
+            <span class="task-copy"><strong>Вывод дерева родительских связей в report.py</strong><small>Завершена 24 июля · 2 связанных маркера</small></span>
+            <span class="status-chip" style="--chip-bg:var(--success-soft);--chip:var(--success)">Выполнено</span>
+            <span class="priority">Средний</span>
+            <span class="time-cell"><strong>7 ч</strong><small>из 7 ч</small></span>
+          </summary>
+          <div class="task-body">
+            <dl class="task-facts">
+              <div><dt>Исполнитель</dt><dd>Уланов Вячеслав</dd></div>
+              <div><dt>Завершена</dt><dd>24.07.2026 · 16:44</dd></div>
+              <div><dt>Оценка</dt><dd>7 ч · остаток 0</dd></div>
+              <div><dt>Результат</dt><dd>Дочерние задачи выводятся с отступом под родителем</dd></div>
+            </dl>
+            <div class="task-story">
+              <h4>Что происходило</h4>
+              <p>Реализована связь Parent-Child и сохранён порядок исходной выдачи. Повторное чтение Jira подтвердило конечный статус.</p>
+            </div>
+          </div>
+        </details>
+
+        <div class="registry-empty" id="registry-empty">По этому фильтру задач нет. Сбросьте фильтр или измените запрос.</div>
+      </div>
+      <div class="registry-note">
+        <span id="task-count" aria-live="polite">Показано 5 из 5 строк шаблона</span>
+        <span>В готовом отчёте список не сокращается и не перегруппировывается</span>
+      </div>
+    </section>
+
+    <section class="section" id="checks">
+      <div class="section-heading">
+        <h2>Проверка данных</h2>
+        <p>В отчёте явно остаются неполные поля, технический worklog и границы запроса. Ничего не исчезает молча.</p>
+      </div>
+      <div class="audit-box">
+        <h3>2 места требуют ручной сверки</h3>
+        <ol>
+          <li>У ATOM-3398 отсутствует новое событие после 23.07.2026; причина приостановки взята из последнего комментария.</li>
+          <li>Три технических worklog по 1 минуте созданы Jira на переходах и включены в итог периода; в реестре шаблона показан ATOM-3376.</li>
+        </ol>
+      </div>
+      <div class="source-table" aria-label="Источники данных">
+        <div class="source-row"><strong>Список задач</strong><span>JQL: assignee = currentUser() OR связанные родители · период 21–25 июля</span><b>получено</b></div>
+        <div class="source-row"><strong>Поля задач</strong><span>summary, status, issuetype, priority, assignee, created, updated, timetracking, issuelinks</span><b>получено</b></div>
+        <div class="source-row"><strong>Worklog</strong><span>Постранично по каждой задаче с активностью в периоде</span><b>получено</b></div>
+        <div class="source-row"><strong>История изменений</strong><span>changelog для переходов, назначений и изменений оценки</span><b>получено</b></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Шаблон для скилла jira-browser-workflow</span>
+    <span>Самодостаточный HTML · данные Jira встраиваются в блок report-data</span>
+  </footer>
+</div>
+
+<script type="application/json" id="report-data">
+{
+  "template": true,
+  "generated_at": "2026-07-27T11:30:00+03:00",
+  "period": {"since": "2026-07-21", "until": "2026-07-25", "timezone": "Europe/Moscow"},
+  "scope": {"project": "ATOM", "assignee": "ulanovvs", "include_parents": true},
+  "stats": {
+    "issues": 12,
+    "assigned_issues": 8,
+    "related_parents": 4,
+    "completed": 5,
+    "created": 2,
+    "worklog_seconds": 94680,
+    "technical_worklog_seconds": 180,
+    "remaining_estimate_seconds": 52200
+  },
+  "status_counts": {"backlog": 2, "progress": 3, "paused": 1, "review": 1, "done": 5},
+  "warnings": [
+    "У ATOM-3398 отсутствует новое событие после 23.07.2026.",
+    "Три технических worklog по 1 минуте включены в итог периода; в реестре шаблона показан ATOM-3376."
+  ],
+  "data_note": "Демонстрационная структура. Генератор должен заменить значения реальными данными Jira."
+}
+</script>
+<script>
+(() => {
+  const root = document.documentElement;
+  const themeButton = document.getElementById("theme-toggle");
+  const printButton = document.getElementById("print-report");
+  const expandButton = document.getElementById("expand-tasks");
+  const searchInput = document.getElementById("task-search");
+  const filterButtons = [...document.querySelectorAll(".filter-button")];
+  const taskItems = [...document.querySelectorAll(".task-item")];
+  const emptyState = document.getElementById("registry-empty");
+  const countState = document.getElementById("task-count");
+  const states = ["auto", "light", "dark"];
+  const labels = {auto:"Тема: авто",light:"Тема: светлая",dark:"Тема: тёмная"};
+  let activeFilter = "all";
+  let printState = [];
+
+  const readTheme = () => {
+    try{return localStorage.getItem("jira-report-theme") || "auto"}
+    catch{return "auto"}
+  };
+  const saveTheme = value => {
+    try{localStorage.setItem("jira-report-theme",value)}
+    catch{}
+  };
+  let theme = readTheme();
+
+  const applyTheme = () => {
+    if(theme === "auto") root.removeAttribute("data-theme");
+    else root.dataset.theme = theme;
+    themeButton.textContent = labels[theme];
+  };
+
+  const applyTaskFilter = () => {
+    const query = searchInput.value.trim().toLocaleLowerCase("ru");
+    let visible = 0;
+    taskItems.forEach(item => {
+      const matchesFilter = activeFilter === "all" || item.dataset.status === activeFilter;
+      const matchesQuery = !query || item.dataset.search.includes(query);
+      item.hidden = !(matchesFilter && matchesQuery);
+      if(!item.hidden) visible += 1;
+    });
+    emptyState.classList.toggle("is-visible",visible === 0);
+    countState.textContent = `Показано ${visible} из ${taskItems.length} строк шаблона`;
+  };
+
+  themeButton.addEventListener("click",() => {
+    theme = states[(states.indexOf(theme) + 1) % states.length];
+    saveTheme(theme);
+    applyTheme();
+  });
+
+  filterButtons.forEach(button => {
+    button.addEventListener("click",() => {
+      activeFilter = button.dataset.filter;
+      filterButtons.forEach(item => item.setAttribute("aria-pressed",String(item === button)));
+      applyTaskFilter();
+    });
+  });
+
+  searchInput.addEventListener("input",applyTaskFilter);
+
+  expandButton.addEventListener("click",() => {
+    const visibleTasks = taskItems.filter(item => !item.hidden);
+    const shouldOpen = visibleTasks.some(item => !item.open);
+    visibleTasks.forEach(item => {item.open = shouldOpen});
+    expandButton.textContent = shouldOpen ? "Свернуть все" : "Развернуть все";
+  });
+
+  printButton.addEventListener("click",() => window.print());
+  window.addEventListener("beforeprint",() => {
+    printState = taskItems.map(item => item.open);
+    taskItems.forEach(item => {item.open = true});
+  });
+  window.addEventListener("afterprint",() => {
+    taskItems.forEach((item,index) => {item.open = printState[index]});
+  });
+
+  applyTheme();
+  applyTaskFilter();
+})();
+</script>
+</body>
+</html>

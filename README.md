@@ -18,9 +18,9 @@ python app.py
 
 ## Что нужно
 
-- Python 3.11+ с `requests` и `openpyxl`;
-- скилл `jira-browser-workflow` в `%LOCALAPPDATA%\hermes\skills\productivity\` —
-  он делает авторизацию и сбор данных. Другой путь задаётся `JIRA_SKILL_DIR`.
+Python 3.11+ с `requests` и `openpyxl`. Больше ничего: приложение самодостаточно.
+
+Адрес Jira и ключ проекта заданы в `CONFIG` в начале [jira_client.py](jira_client.py).
 
 ## Вход
 
@@ -81,9 +81,17 @@ cookie-сессию, поэтому пароль не нужен до нажат
 |------|-----------|
 | `app.py` | веб-интерфейс и запуск сборки |
 | `xlsx_report.py` | заполнение бланка из JSON-выгрузки |
+| `jira_client.py` | вход в Jira, кэш сессии, чтение через REST |
+| `generate_report.py` | сбор активности за период в нормализованный JSON |
+| `render_html.py` | вёрстка HTML-отчёта |
+| `assets/report_template.html` | каркас HTML-отчёта |
 | `template.xlsx` | бланк отчёта; шапка, подписи и логотип берутся отсюда |
 | `test_xlsx_report.py` | проверка раскладки по дням и по графику |
 | `reports/` | готовые HTML, JSON и xlsx; не попадает в git |
+
+Три файла — `jira_client.py`, `generate_report.py`, `render_html.py` — и HTML-каркас
+перенесены из скилла `jira-browser-workflow` (MIT, Hermes Agent + Nous Research).
+Из клиента Jira взята только читающая часть: приложение ничего в Jira не меняет.
 
 `xlsx_report.py` работает и отдельно:
 

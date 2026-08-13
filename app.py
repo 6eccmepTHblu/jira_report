@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Локальное веб-приложение: выгрузка активности из Jira за период → HTML + бланк xlsx.
 
-Сбор данных и вёрстку HTML делает скилл jira-browser-workflow (scripts/generate_report.py),
-здесь только интерфейс, вход и выдача готовых файлов.
+Сбор данных ведёт generate_report, вёрстку HTML — render_html, бланк собирает
+xlsx_report; здесь только интерфейс, вход и выдача готовых файлов.
 
 Логин и пароль вводятся на странице и живут только в памяти процесса: на диск приложение
-их не пишет. После входа скилл кэширует cookie-сессию Jira, поэтому пароль не нужен до
+их не пишет. После входа cookie-сессия Jira кэшируется, поэтому пароль не нужен до
 следующего «Выйти». Если JIRA_USERNAME / JIRA_PASSWORD заданы в окружении, вход не нужен.
 
     python app.py            # откроет http://127.0.0.1:8765
@@ -17,7 +17,6 @@ import html
 import json
 import os
 import re
-import sys
 import threading
 import webbrowser
 from datetime import date, datetime, time, timedelta
@@ -25,29 +24,20 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
+import generate_report
+import jira_client as jira
+import xlsx_report
+from render_html import render_html
+
 BASE_DIR = Path(__file__).parent
 REPORTS_DIR = BASE_DIR / "reports"
 PORT = int(os.environ.get("JIRA_REPORT_PORT", "8765"))
 
-SKILL_DIR = Path(os.environ.get("JIRA_SKILL_DIR") or (
-    Path(os.environ.get("LOCALAPPDATA", "")) / "hermes" / "skills" / "productivity"
-    / "jira-browser-workflow"))
-sys.path.insert(0, str(SKILL_DIR / "scripts"))
-
-try:
-    import generate_report
-    import jira
-    from render_html import render_html
-except ImportError as error:  # скилл не на месте — единственная внешняя зависимость
-    raise SystemExit(
-        "Не найден скилл jira-browser-workflow в %s (%s).\n"
-        "Укажи путь переменной JIRA_SKILL_DIR." % (SKILL_DIR, error))
-
-import xlsx_report
-
 # «Выйти» должен работать и когда логин лежит в переменных окружения Windows: пока флаг
 # поднят, приложение не пробует авторизоваться само и показывает форму входа.
-STATE = {"force_login": False}
+# identity кэшируется до входа/выхода — иначе каждый рендер страницы ходил бы в Jira
+# и открывался две секунды.
+STATE: dict = {"force_login": False, "identity": None}
 
 
 # --- Jira ----------------------------------------------------------------------
@@ -55,21 +45,24 @@ def jira_identity() -> tuple[bool, str]:
     """Кто вошёл. Возвращает (ок, имя пользователя либо причину отказа)."""
     if STATE["force_login"]:
         return False, "Войдите под своей учётной записью Jira"
+    if STATE["identity"]:
+        return True, STATE["identity"]
     try:
         session = jira.get_session()
         me = jira.api(session, "GET", "/rest/api/2/myself").json()
-        return True, "%s · %s" % (me.get("displayName"), me.get("name"))
     except SystemExit:
         # jira.fail() завершает процесс — в вебе это недопустимо, ловим и показываем.
         return False, "Логин и пароль не заданы"
     except Exception as error:
         return False, str(error)
+    STATE["identity"] = "%s · %s" % (me.get("displayName"), me.get("name"))
+    return True, STATE["identity"]
 
 
 def jira_login(username: str, password: str) -> tuple[bool, str]:
     """Проверяет пару логин/пароль и запоминает её в окружении процесса.
 
-    Пароль остаётся только в памяти: jira.py читает его из окружения, а cookie-сессию
+    Пароль остаётся только в памяти: jira_client читает его из окружения, а cookie-сессию
     кэширует сам. На диск приложение пароль не пишет.
     """
     previous = {name: os.environ.get(name) for name in ("JIRA_USERNAME", "JIRA_PASSWORD")}
@@ -87,6 +80,7 @@ def jira_login(username: str, password: str) -> tuple[bool, str]:
         _restore_env(previous)
         return False, str(error)
     STATE["force_login"] = False
+    STATE["identity"] = None
     return True, me.get("displayName") or username
 
 
@@ -107,6 +101,7 @@ def jira_logout() -> None:
     except OSError:
         pass
     STATE["force_login"] = True
+    STATE["identity"] = None
 
 
 # --- Данные --------------------------------------------------------------------
@@ -606,6 +601,7 @@ class Handler(BaseHTTPRequestHandler):
                            bool(form.get("include_parents")))
         except SystemExit:
             STATE["force_login"] = True
+            STATE["identity"] = None
             self._page("", 401, login_error="Jira отклонила сессию — войдите заново.")
             return
         except (ValueError, jira.StepError) as error:
